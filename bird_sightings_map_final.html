@@ -1,0 +1,123 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bird Sightings Map</title>
+  <style>
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+    .controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <label for="speciesFilter">Species:</label>
+    <select id="speciesFilter"></select>
+    <br><br>
+    <label for="yearSlider">Year:</label>
+    <input type="range" id="yearSlider" min="2000" max="2025" value="2025">
+    <span id="yearDisplay">2025</span>
+  </div>
+  <div id="map"></div>
+
+  <script>
+    let map, heatmap, infoWindow;
+    let markers = [];
+    const sightings = [
+      { name: "Blackbird", lat: 51.21933, lng: -2.671874, date: "2017-05-11" },
+      { name: "Eurasian Blackcap", lat: 51.21933, lng: -2.671874, date: "2017-05-11" },
+      { name: "Bullfinch", lat: 51.21933, lng: -2.671874, date: "2017-05-11" },
+      { name: "Eurasian Coot", lat: 51.21933, lng: -2.671874, date: "2017-05-11" },
+      { name: "Great Cormorant", lat: 51.21933, lng: -2.671874, date: "2017-05-11" },
+      { name: "Long-tailed tit", lat: 51.21933, lng: -2.671874, date: "2017-05-11" },
+      { name: "Carrion Crow", lat: 51.21933, lng: -2.671874, date: "2017-05-11" },
+      { name: "White-throated Dipper", lat: 51.21933, lng: -2.671874, date: "2017-05-11" },
+      { name: "Coal Tit", lat: 51.21933, lng: -2.671874, date: "2017-05-11" },
+      { name: "Stock Dove", lat: 51.21933, lng: -2.671874, date: "2017-05-11" },
+      { name: "Eurasian Collared Dove", lat: 51.21933, lng: -2.671874, date: "2017-05-11" },
+      { name: "Tawny Owl", lat: 51.21933, lng: -2.671874, date: "2017-05-11" }
+    ];
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 0, lng: 20 },
+        zoom: 2,
+        mapTypeId: "roadmap"
+      });
+
+      infoWindow = new google.maps.InfoWindow();
+      const speciesSet = new Set();
+      const heatmapData = [];
+
+      sightings.forEach((record) => {
+        const latLng = new google.maps.LatLng(record.lat, record.lng);
+        heatmapData.push(latLng);
+        const marker = new google.maps.Marker({
+          position: latLng,
+          map: map,
+          title: record.name
+        });
+        marker.date = new Date(record.date);
+        marker.species = record.name;
+        marker.addListener("click", () => {
+          infoWindow.setContent(`<strong>${record.name}</strong><br>${record.date}`);
+          infoWindow.open(map, marker);
+        });
+        markers.push(marker);
+        speciesSet.add(record.name);
+      });
+
+      heatmap = new google.maps.visualization.HeatmapLayer({
+        data: heatmapData,
+        map: map
+      });
+
+      populateSpeciesFilter(speciesSet);
+    }
+
+    function populateSpeciesFilter(speciesSet) {
+      const filter = document.getElementById("speciesFilter");
+      filter.innerHTML = '<option value="all">All</option>';
+      [...speciesSet].sort().forEach(species => {
+        const option = document.createElement("option");
+        option.value = species;
+        option.textContent = species;
+        filter.appendChild(option);
+      });
+    }
+
+    document.getElementById("speciesFilter").addEventListener("change", filterMarkers);
+    document.getElementById("yearSlider").addEventListener("input", function() {
+      document.getElementById("yearDisplay").textContent = this.value;
+      filterMarkers();
+    });
+
+    function filterMarkers() {
+      const species = document.getElementById("speciesFilter").value;
+      const year = parseInt(document.getElementById("yearSlider").value);
+      const visibleMarkers = [];
+      markers.forEach(marker => {
+        const isVisible = (species === "all" || marker.species === species) && marker.date.getFullYear() <= year;
+        marker.setVisible(isVisible);
+        if (isVisible) visibleMarkers.push(marker.getPosition());
+      });
+      heatmap.setData(visibleMarkers);
+    }
+  </script>
+
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyByDE_MsVSMBauFo6wdrVWxoZzmr7FrJO4&libraries=visualization&callback=initMap">
+  </script>
+</body>
+</html>
